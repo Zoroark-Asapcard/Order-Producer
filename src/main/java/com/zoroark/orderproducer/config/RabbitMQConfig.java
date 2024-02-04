@@ -1,6 +1,5 @@
 package com.zoroark.orderproducer.config;
 
-import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
@@ -28,11 +27,6 @@ public class RabbitMQConfig {
 
     @Value("${spring.rabbitmq.password}")
     private String rabbitPassword;
-    
-    @Bean
-    Queue queue() {
-		return new Queue("orders.v1.order-created");
-    }
     
     @Bean
     RabbitAdmin rabbitAdmin(ConnectionFactory connectionFactory) {
