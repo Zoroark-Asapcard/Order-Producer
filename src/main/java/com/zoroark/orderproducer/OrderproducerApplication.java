@@ -1,37 +1,41 @@
 package com.zoroark.orderproducer;
 
-import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
-import com.zoroark.orderproducer.util.*;
-
+import com.rabbitmq.client.ConnectionFactory;
+import com.zoroark.orderproducer.util.CsvReaderUtil;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-import com.rabbitmq.client.Channel;
+import java.io.IOException;
 
 @SpringBootApplication
 public class OrderproducerApplication {
-	private final static String QUEUE_NAME = "orders";
 
-	public static void main(String[] argv) throws Exception {
-		ConnectionFactory factory = new ConnectionFactory();
-		String filePath = "input-data.csv";
+    public static void main(String[] args) throws Exception {
+        String directoryPath = "/path/to/your/directory"; // Specify your directory path here
+        String queueName = "orders";
 
-        // Create a CachingConnectionFactory and set the connection details
+        // Set up RabbitMQ connection
+        ConnectionFactory factory = new ConnectionFactory();
         CachingConnectionFactory connectionFactory = new CachingConnectionFactory();
-
-        // Create a RabbitTemplate instance and set the connection factory
         RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
 
-		try (Connection connection = factory.newConnection(); Channel channel = connection.createChannel()) {
-			
-			// Create a Queue
-			channel.queueDeclare(QUEUE_NAME, false, false, false, null);
-			
-			// Function that reads and sends messages in Json format
-			CsvReaderUtil.readCSVFile(filePath, rabbitTemplate);
-			
-		}
-	}
+        // Set up RabbitMQ queue
+        try (Connection connection = factory.newConnection(); Channel channel = connection.createChannel()) {
+            channel.queueDeclare(queueName, false, false, false, null);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // Process existing files in the directory and watch for new ones
+        CsvReaderUtil csvReaderUtil = new CsvReaderUtil();
+        csvReaderUtil.processExistingFiles(directoryPath);
+        csvReaderUtil.watchDirectory(directoryPath);
+
+        // Close the application context
+        SpringApplication.run(OrderproducerApplication.class, args);
+    }
 }

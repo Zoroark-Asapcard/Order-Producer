@@ -1,36 +1,66 @@
 package com.zoroark.orderproducer.util;
 
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.StringTokenizer;
-
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
+import java.io.*;
+import java.nio.file.*;
+import java.util.StringTokenizer;
+
 @Component
 public class CsvReaderUtil {
-	 
-    public static void readCSVFile(String filePath, RabbitTemplate rabbitTemplate) {
-        try {
-            // Obtain the ClassLoader associated with the CsvReaderUtil class
-            ClassLoader classLoader = CsvReaderUtil.class.getClassLoader();
-            // Get an InputStream for the specified file path using the ClassLoader
-            InputStream inputStream = classLoader.getResourceAsStream(filePath);
 
-            if (inputStream == null) {
-                throw new FileNotFoundException("File not found: " + filePath);
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
+
+    public void processExistingFiles(String directoryPath) {
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(directoryPath), "*.csv")) {
+            for (Path entry : stream) {
+                readCSVFile(entry.toString());
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void watchDirectory(String directoryPath) {
+        try {
+            WatchService watchService = FileSystems.getDefault().newWatchService();
+            Path path = Paths.get(directoryPath);
+
+            path.register(
+                    watchService,
+                    StandardWatchEventKinds.ENTRY_CREATE,
+                    StandardWatchEventKinds.ENTRY_MODIFY
+            );
+
+            while (true) {
+                WatchKey key = watchService.take();
+
+                for (WatchEvent<?> event : key.pollEvents()) {
+                    if (event.kind() == StandardWatchEventKinds.ENTRY_CREATE ||
+                            event.kind() == StandardWatchEventKinds.ENTRY_MODIFY) {
+                        Path filePath = (Path) event.context();
+                        readCSVFile(path.resolve(filePath).toString());
+                    }
+                }
+
+                boolean reset = key.reset();
+                if (!reset) {
+                    break;
+                }
             }
 
-            // Create an InputStreamReader to read characters from the InputStream
-            InputStreamReader reader = new InputStreamReader(inputStream);
-            // Optionally, create a BufferedReader to improve reading performance
-            BufferedReader bufferedReader = new BufferedReader(reader);
-            
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void readCSVFile(String filePath) {
+        try (BufferedReader bufferedReader = new BufferedReader(new FileReader(filePath))) {
             JSONArray jsonArray = new JSONArray();
 
             String line;
@@ -59,10 +89,11 @@ public class CsvReaderUtil {
 
                 // Add the JSONObject to the JSONArray
                 jsonArray.put(jsonObject);
-                
+
+                // Send the JSON message to RabbitMQ queue using RabbitMQProducer
                 rabbitTemplate.convertAndSend("orders", jsonObject.toString());
             }
-            
+
         } catch (IOException e) {
             e.printStackTrace();
         }
