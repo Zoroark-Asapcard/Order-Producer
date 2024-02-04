@@ -1,11 +1,16 @@
 package com.zoroark.orderproducer.config;
 
+import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 
@@ -23,6 +28,22 @@ public class RabbitMQConfig {
 
     @Value("${spring.rabbitmq.password}")
     private String rabbitPassword;
+    
+    @Bean
+    Queue queue() {
+		return new Queue("orders.v1.order-created");
+    }
+    
+    @Bean
+    RabbitAdmin rabbitAdmin(ConnectionFactory connectionFactory) {
+    	return new RabbitAdmin(connectionFactory);
+    }
+    
+    @Bean
+    ApplicationListener<ApplicationReadyEvent> applicationReadyEventApplicationListener(RabbitAdmin rabbitAdmin){
+    	return event -> rabbitAdmin.initialize();
+    }
+    
 
     @Bean
     ConnectionFactory connectionFactory() {

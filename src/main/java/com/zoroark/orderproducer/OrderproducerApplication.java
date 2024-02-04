@@ -1,48 +1,27 @@
 package com.zoroark.orderproducer;
 
-import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.CommandLineRunner;
-import org.springframework.boot.SpringApplication;
+import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.Connection;
+
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-import com.zoroark.orderproducer.util.CsvReaderUtil;
-import com.zoroark.orderproducer.producer.RabbitMQProducer;
+import com.rabbitmq.client.Channel;
 
 @SpringBootApplication
-public class OrderproducerApplication implements CommandLineRunner {
+public class OrderproducerApplication {
+	private final static String QUEUE_NAME = "hello";
 
-	@Autowired
-	private RabbitMQProducer rabbitMQProducer;
+	public static void main(String[] argv) throws Exception {
+		ConnectionFactory factory = new ConnectionFactory();
+		
 
-	public static void main(String[] args) {
-		SpringApplication.run(OrderproducerApplication.class, args);
-
-		// Set the RabbitMQ broker connection details
-		String host = "localhost";
-		int port = 5672;
-		String username = "guest";
-		String password = "guest";
-
-		// Create a CachingConnectionFactory and set the connection details
-		CachingConnectionFactory connectionFactory = new CachingConnectionFactory();
-		connectionFactory.setHost(host);
-		connectionFactory.setPort(port);
-		connectionFactory.setUsername(username);
-		connectionFactory.setPassword(password);
-
-		// Create a RabbitTemplate instance and set the connection factory
-		RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
-
-		// Teste da Leitura de Arquivo CSV
-		String filePath = "input-data.csv";
-		CsvReaderUtil.readCSVFile(filePath, rabbitTemplate);
+		try (Connection connection = factory.newConnection(); Channel channel = connection.createChannel()) {
+			
+			channel.queueDeclare(QUEUE_NAME, false, false, false, null);
+			String message = "Hello World!";
+			channel.basicPublish("", QUEUE_NAME, null, message.getBytes());
+			System.out.println(" [x] Sent '" + message + "'");
+			
+		}
 	}
-
-	@Override
-	public void run(String... args) throws Exception {
-		rabbitMQProducer.send("orders", "Olá, RabbitMQ!");
-	}
-
 }
