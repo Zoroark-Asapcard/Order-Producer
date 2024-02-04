@@ -18,26 +18,26 @@ public class OrderproducerApplication implements CommandLineRunner {
 
 	public static void main(String[] args) {
 		SpringApplication.run(OrderproducerApplication.class, args);
-		
+
 		// Set the RabbitMQ broker connection details
-        String host = "localhost"; // Replace with your RabbitMQ server host
-        int port = 5672; // Replace with your RabbitMQ server port
-        String username = "guest"; // Replace with your RabbitMQ server username
-        String password = "guest"; // Replace with your RabbitMQ server password
+		String host = "localhost";
+		int port = 5672;
+		String username = "guest";
+		String password = "guest";
 
-        // Create a CachingConnectionFactory and set the connection details
-        CachingConnectionFactory connectionFactory = new CachingConnectionFactory();
-        connectionFactory.setHost(host);
-        connectionFactory.setPort(port);
-        connectionFactory.setUsername(username);
-        connectionFactory.setPassword(password);
+		// Create a CachingConnectionFactory and set the connection details
+		CachingConnectionFactory connectionFactory = new CachingConnectionFactory();
+		connectionFactory.setHost(host);
+		connectionFactory.setPort(port);
+		connectionFactory.setUsername(username);
+		connectionFactory.setPassword(password);
 
-        // Create a RabbitTemplate instance and set the connection factory
-        RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
-        
-      //Teste da Leitura de Arquivo CSV
-      		String filePath = "input-data.csv";
-      		CsvReaderUtil.readCSVFile(filePath, rabbitTemplate);
+		// Create a RabbitTemplate instance and set the connection factory
+		RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
+
+		// Teste da Leitura de Arquivo CSV
+		String filePath = "input-data.csv";
+		CsvReaderUtil.readCSVFile(filePath, rabbitTemplate);
 	}
 
 	@Override
