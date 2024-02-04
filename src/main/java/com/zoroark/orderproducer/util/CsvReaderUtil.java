@@ -10,12 +10,19 @@ import java.util.StringTokenizer;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.stereotype.Component;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import com.zoroark.orderproducer.producer.RabbitMQProducer;
 
 
 @Component
 public class CsvReaderUtil {
+	
+	@Autowired
+	private static RabbitMQProducer rabbitMQProducer;
 	 
-    public static void readCSVFile(String filePath) {
+    public static void readCSVFile(String filePath, RabbitTemplate rabbitTemplate) {
         try {
             // Obtain the ClassLoader associated with the CsvReaderUtil class
             ClassLoader classLoader = CsvReaderUtil.class.getClassLoader();
@@ -59,6 +66,8 @@ public class CsvReaderUtil {
 
                 // Add the JSONObject to the JSONArray
                 jsonArray.put(jsonObject);
+                
+                rabbitTemplate.convertAndSend("orders", jsonObject.toString());
             }
             
 //save transactions en db transactionservice.save
@@ -66,6 +75,8 @@ public class CsvReaderUtil {
             
             // Print or handle JSON messages as needed
             System.out.println(jsonArray.toString(4));
+            
+            
             
             bufferedReader.close();
         } catch (IOException e) {
